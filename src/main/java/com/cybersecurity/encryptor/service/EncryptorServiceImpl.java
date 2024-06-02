@@ -22,6 +22,7 @@ public class EncryptorServiceImpl implements EncryptorService {
     private static final int TAG_LENGTH_BIT = 128;
     private static final int IV_LENGTH_BYTE = 12;
     private static final int SALT_LENGTH_BYTE = 16;
+    private static final String FILES_DIR = "files";
 
     @Override
     public File encryptFile(MultipartFile file, String password) throws Exception {
@@ -39,7 +40,7 @@ public class EncryptorServiceImpl implements EncryptorService {
         byte[] hash = computeSHA256(inputBytes);
         byte[] cipherText = cipher.doFinal(inputBytes);
 
-        File encryptedFile = new File("encrypted_" + file.getOriginalFilename());
+        File encryptedFile = new File(FILES_DIR + "/encrypted_" + file.getOriginalFilename());
         try (FileOutputStream fos = new FileOutputStream(encryptedFile)) {
             fos.write(salt);
             fos.write(iv);
@@ -72,7 +73,7 @@ public class EncryptorServiceImpl implements EncryptorService {
                 throw new SecurityException("Hash does not match, data integrity compromised!");
             }
 
-            File decryptedFile = new File("decrypted_" + file.getOriginalFilename());
+            File decryptedFile = new File(FILES_DIR+"/decrypted_" + file.getOriginalFilename());
             try (FileOutputStream fos = new FileOutputStream(decryptedFile)) {
                 fos.write(decryptedText);
             }
