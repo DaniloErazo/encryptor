@@ -5,7 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
@@ -18,9 +18,8 @@ import java.util.Arrays;
 @Service
 public class EncryptorServiceImpl implements EncryptorService {
 
-    private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int TAG_LENGTH_BIT = 128;
-    private static final int IV_LENGTH_BYTE = 12;
+    private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
+    private static final int IV_LENGTH_BYTE = 16;
     private static final int SALT_LENGTH_BYTE = 16;
 
     @Override
@@ -32,8 +31,9 @@ public class EncryptorServiceImpl implements EncryptorService {
         byte[] iv = new byte[IV_LENGTH_BYTE];
         SecureRandom random = new SecureRandom();
         random.nextBytes(iv);
-        GCMParameterSpec spec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), spec);
+        IvParameterSpec ivSpec = new IvParameterSpec(iv);
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), ivSpec);
+
 
         byte[] inputBytes = file.getBytes();
         byte[] hash = computeSHA256(inputBytes);
@@ -62,26 +62,27 @@ public class EncryptorServiceImpl implements EncryptorService {
         byte[] key = generateKeyFromPassword(password, salt);
 
         Cipher cipher = Cipher.getInstance(ALGORITHM);
-        GCMParameterSpec spec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), spec);
+        IvParameterSpec ivSpec = new IvParameterSpec(iv);
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), ivSpec);
 
+        byte[] decryptedText;
         try {
-            byte[] decryptedText = cipher.doFinal(cipherText);
-            byte[] computedHash = computeSHA256(decryptedText);
-            if (!Arrays.equals(storedHash, computedHash)) {
-                throw new SecurityException("Hash does not match, data integrity compromised!");
-            }
-
-            File decryptedFile = new File("decrypted_" + file.getOriginalFilename());
-            try (FileOutputStream fos = new FileOutputStream(decryptedFile)) {
-                fos.write(decryptedText);
-            }
-
-            return decryptedFile;
-
+            decryptedText = cipher.doFinal(cipherText);
         } catch (Exception e) {
-            throw new SecurityException("Could not decrypt the file, wrong password!");
+            throw new SecurityException("Could not decrypt the file, wrong password or corrupted file!");
         }
+
+        byte[] computedHash = computeSHA256(decryptedText);
+        if (!Arrays.equals(storedHash, computedHash)) {
+            throw new SecurityException("Hash does not match, data integrity compromised!");
+        }
+
+        File decryptedFile = new File("decrypted_" + file.getOriginalFilename());
+        try (FileOutputStream fos = new FileOutputStream(decryptedFile)) {
+            fos.write(decryptedText);
+        }
+
+        return decryptedFile;
     }
 
     private byte[] generateKeyFromPassword(String password, byte[] salt) throws Exception {
