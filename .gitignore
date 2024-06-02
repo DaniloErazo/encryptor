@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Ignore all files in the files directory
+files/*
+# Except this file
+!files/.gitkeep
+
