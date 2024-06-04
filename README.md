@@ -1,4 +1,4 @@
-# EncryptorService README
+# EncryptorService
 
 ## Overview
 
@@ -94,7 +94,3 @@ SHA-256 hashing is used to ensure the integrity of the encrypted and decrypted d
 ## Conclusions
 
 The `EncryptorService` provides a secure and reliable way to encrypt and decrypt files using password-based encryption with AES-CBC. The implementation ensures data integrity through SHA-256 hashing and robust exception handling. Future improvements could include adding support for different encryption algorithms and enhancing performance for large file encryption and decryption.
-
----
-
-For any issues or contributions, please refer to the repository's issue tracker and contribution guidelines.
